@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CV: Alexandr Harabara</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Dark Theme Adjustments */
+        .nav-link.active {
+            background-color: #374151; /* gray-700 */
+            color: #f9fafb; /* gray-50 */
+            font-weight: 700;
+        }
+        .timeline-point {
+            position: absolute;
+            left: -1.5rem;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 3rem;
+        }
+        .timeline-point::before {
+            content: none;
+        }
+        .details.hidden {
+            display: none;
+        }
+        /* D3 Graph Styles for Dark Theme */
+        .d3-graph-container {
+            width: 100%;
+            background-color: #1f2937; /* gray-800 */
+            border-radius: 0.5rem;
+            border: 1px solid #4b5563; /* gray-600 */
+            cursor: grab;
+        }
+        .d3-graph-container:active {
+            cursor: grabbing;
+        }
+        .d3-graph-container svg {
+            width: 100%;
+            height: 100%;
+        }
+        .graph-links line {
+            stroke: #4b5563; /* gray-600 */
+            stroke-opacity: 0.6;
+        }
+        .graph-nodes .node-group {
+            cursor: pointer;
+        }
+        .graph-nodes .node-circle {
+            stroke: #9ca3af; /* gray-400 */
+            stroke-width: 1.5px;
+        }
+        .graph-nodes .node-text {
+            font-size: 12px;
+            fill: #d1d5db; /* gray-300 */
+            pointer-events: none;
+            text-anchor: middle;
+            font-weight: 500;
+        }
+        .graph-nodes .node-text.center-node {
+            font-size: 12px;
+            font-weight: 700;
+            fill: #f9fafb; /* gray-50 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-300">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-gray-800 shadow-lg md:h-screen md:sticky md:top-0">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-white">Alexandr Harabara</h1>
+                <p class="text-sm text-gray-400 mt-1">PHP Backend Developer</p>
+                <div class="mt-4 text-sm">
+                    <p><a href="mailto:dev.xandr@gmail.com" class="text-blue-400 hover:underline">dev.xandr@gmail.com</a></p>
+                    <p class="text-gray-400 mt-1">078938716</p>
+                </div>
+                <!-- Social Links -->
+                <div class="mt-6 flex space-x-4">
+                    <a href="https://github.com/aharabara" target="_blank" class="text-gray-400 hover:text-white">
+                        <i class="fab fa-github fa-2x"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/aharabara-855106143" target="_blank" class="text-gray-400 hover:text-blue-400">
+                        <i class="fab fa-linkedin fa-2x"></i>
+                    </a>
+                </div>
+            </div>
+            <nav class="mt-4 px-3">
+                <a href="#home" class="nav-link flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">🏠</span> Home
+                </a>
+                <a href="#skills" class="nav-link flex items-center px-4 py-3 mt-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">💡</span> Skills
+                </a>
+                <a href="#experience" class="nav-link flex items-center px-4 py-3 mt-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">📂</span> Experience
+                </a>
+                 <a href="#mentoring" class="nav-link flex items-center px-4 py-3 mt-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">🧑‍🏫</span> Mentoring
+                </a>
+                <a href="#education" class="nav-link flex items-center px-4 py-3 mt-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">🎓</span> Education
+                </a>
+                <a href="#languages" class="nav-link flex items-center px-4 py-3 mt-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                    <span class="mr-3">🌍</span> Languages
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-6 md:p-10">
+            <div id="home" class="section">
+                <h2 class="text-3xl font-bold text-white mb-4">Career Summary</h2>
+                <p class="text-lg text-gray-400 leading-relaxed">
+                    As a Backend Developer, I possess a strong background in building scalable web applications and APIs, with expertise across various technologies and tools. My experience includes mentoring colleagues, guiding student internships and interviewing technical candidates. I am proficient in PHP, Symfony, API Platform, Laravel, Docker and AWS Services, have contributed to projects in industries such as payment platforms, e-commerce, flight and hotel booking, and luxury car services.
+                </p>
+                
+                <div class="mt-12">
+                    <h3 class="text-2xl font-bold text-white mb-4 text-center">Skills Graph</h3>
+                    <p class="text-center text-gray-400 mb-6 max-w-2xl mx-auto">This is an interactive visualization of my key competencies. Categories are central nodes from which related technologies branch out. You can drag nodes, zoom, and use search to filter.</p>
+                    <div class="max-w-lg mx-auto mb-6">
+                        <input type="text" id="skill-search" placeholder="Search for skills or categories..." class="w-full p-3 bg-gray-800 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="d3-skills-graph-container" class="d3-graph-container h-[600px]">
+                        <svg id="d3-skills-graph"></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div id="skills" class="section">
+                <h2 class="text-3xl font-bold text-white mb-2">Skills & Technologies</h2>
+                <p class="text-gray-400 mb-6">This is a complete list of technologies I've worked with. Use the filters to navigate by category.</p>
+                <div class="mb-6 text-center" id="skill-filters"></div>
+                <div id="skills-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+            </div>
+
+            <div id="experience" class="section">
+                <h2 class="text-3xl font-bold text-white mb-6">Career History</h2>
+                <div id="experience-timeline" class="relative border-l-2 border-gray-700 pl-8">
+                    <!-- Experience timeline will be rendered here -->
+                </div>
+            </div>
+            
+            <div id="mentoring" class="section">
+                <h2 class="text-3xl font-bold text-white mb-6">Mentoring & Training</h2>
+                <div id="mentoring-container" class="space-y-4 text-lg text-gray-300">
+                     <!-- Mentoring content will be rendered here -->
+                </div>
+
+                <div class="mt-10">
+                    <h3 class="text-xl font-bold text-white mb-2">Interviewed Candidates Visualization</h3>
+                    <p class="text-gray-400 mb-4">A representation of the 70+ technical candidates interviewed. Each node represents a candidate.</p>
+                    <div id="d3-candidates-graph-container" class="d3-graph-container h-48">
+                        <svg id="d3-candidates-graph"></svg>
+                    </div>
+                </div>
+
+                <div class="mt-10">
+                    <h3 class="text-xl font-bold text-white mb-4">Interactive Demos</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <a href="https://aharabara.github.io/cv/mentoring/api-platform-serialization.html" target="_blank" rel="noopener noreferrer" class="bg-gray-800 p-6 rounded-lg shadow-lg hover:bg-gray-700 transition-colors block">
+                            <h4 class="text-lg font-bold text-white">API Platform Serialization Groups</h4>
+                            <p class="text-gray-400 mt-2">An interactive demonstration of how serialization groups work in API Platform to control data exposure.</p>
+                            <span class="text-blue-400 mt-4 inline-block font-semibold">View Demo &rarr;</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="education" class="section">
+                <h2 class="text-3xl font-bold text-white mb-6">Education</h2>
+                <div id="education-container" class="space-y-6">
+                     <!-- Education content will be rendered here -->
+                </div>
+            </div>
+
+            <div id="languages" class="section">
+                <h2 class="text-3xl font-bold text-white mb-6">Languages</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-white">Russian</h3>
+                        <p class="text-gray-400">Native</p>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-white">English</h3>
+                        <p class="text-gray-400">Advanced</p>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-white">Romanian</h3>
+                        <p class="text-gray-400">Advanced</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DATA ---
+    const skillsData = {
+        'Languages': ['PHP', 'JavaScript', 'Typescript', 'SQL'],
+        'Architecture': ['CQRS', 'Hexagonal arch.', 'DDD', 'Microservices'],
+        'APIs & Protocols': ['OpenAPI/Swagger', 'REST', 'GraphQL', 'JSON-RPC', 'SOAP'],
+        'Frameworks': ['Symfony', 'Slim', 'API Platform', 'Laravel', 'Lumen', 'Bref', 'PHPUnit'],
+        'Databases': ['MySQL', 'Aurora Serverless', 'PostgreSQL', 'SQLite', 'Redis', 'Varnish', 'DynamoDB', 'OpenSearch', 'ElasticSearch'],
+        'Cloud & DevOps': ['Docker', 'Docker Compose', 'AWS CDK', 'SST', 'AWS Services', 'Apache', 'Nginx', 'RoadRunner', 'GitHub Action', 'Gitlab CI/CD', 'Jenkins', 'WSL 1/2']
+    };
+
+    const experienceData = [
+        {
+            period: '2025 – 2025',
+            title: 'Luxury cars premium caretaking services',
+            company: 'Globant',
+            role: 'PHP Backend developer',
+            tech: ['PHP', 'Symfony', 'Sonata', 'GraphQL', 'Docker', 'AWS Cognito', 'AWS CodeBuild', 'AWS SQS', 'ReactNative', 'Redux', 'Python', 'Odoo'],
+            details: [
+                'Increased mobile application loading speed by 3x and reduced server requests by 8x by migrating the application to RTK.',
+                'Achieved a 3x cost reduction by optimizing resource utilization.',
+                'Unified local and cloud infrastructure to reduce environment discrepancies.',
+                'Upgraded the entire backend stack (PHP, Symfony, ApiPlatform, MySQL).',
+                'Performed a Blue-Green deployment to upgrade the database.',
+                'Developed a NodeJS service to handle video file uploads from dashcams.'
+            ]
+        },
+        {
+            period: '2023 – 2025',
+            title: 'Camping search service',
+            company: 'Globant - Pentalog',
+            role: 'PHP Backend developer, Team Leader',
+            tech: ['Symfony on Lambda (Bref)', 'API Platform', 'GraphQL', 'Docker', 'AWS CDK', 'SST', 'Typescript', 'DynamoDB', 'OpenSearch', 'GitHub Actions', 'Aurora Serverless', 'Varnish', 'DDD', 'CQRS'],
+            details: [
+                'Led a team of 5 developers, providing support through mentorship and feedback.',
+                'Co-developed infrastructure using SST and AWS CDK with a highly skilled DevOps engineer.',
+                'Migrated a legacy application of 5 services from GCP to AWS.',
+                'Reduced requests between the legacy frontend and API on every page by extending DBAL with additional functionalities.',
+                'Advocated for better architectural decisions to increase delivery speed.',
+                'Upgraded database from MySQL 5.7 to MySQL 8.0.'
+            ]
+        },
+        {
+            period: '2022 – 2023',
+            title: 'Luxury cars premium caretaking services',
+            company: 'Pentalog',
+            role: 'PHP Backend developer, Team Leader',
+            tech: ['PHP', 'Symfony', 'Sonata', 'GraphQL', 'Docker', 'AWS Cognito', 'AWS SQS', 'ReactNative'],
+            details: [
+                'Delivered fast results in high-stress situations.',
+                'Collaborated with the architect to handle complex topics during critical development periods.',
+                'Mentored colleagues to increase overall team expertise.',
+                'Intervened in mobile development to unblock the frontend team on complex issues.'
+            ]
+        },
+        {
+            period: '2021 – 2022',
+            title: 'Investment platform project',
+            company: 'Pentalog',
+            role: 'PHP Backend developer',
+            tech: ['PHP', 'Laravel', 'Golang', 'REST', 'Kafka', 'Docker', 'AWS', 'Roadrunner', 'Gitlab'],
+            details: [
+                'Upgraded the application from Laravel 7 to 9.1 and PHP 7 to 8.1.',
+                'Increased codebase flexibility by rewriting business logic workflows into pipelined stages for user transactions.',
+                'Reduced integration test execution time from 40 min to 11 min by introducing temporary in-memory SQLite databases for each test suite.'
+            ]
+        },
+        {
+            period: '2019 – 2021',
+            title: 'Payment processing service',
+            company: 'Pentalog',
+            role: 'PHP Developer',
+            tech: ['Docker', 'Slim framework', 'Vagrant', 'Symfony', 'PHP', 'Hexagonal architecture', 'MySQL', 'DDD'],
+            details: [
+                'Contributed to the development and maintenance of a search API.',
+                'Participated in developing a microservice for sales proposals.',
+                'Developed functionalities based on SOAP, REST, and JSON-RPC protocols.'
+            ]
+        },
+        {
+            period: '2018 – 2019',
+            title: 'Management of geographical locations',
+            company: 'Pentalog',
+            role: 'PHP Backend Developer',
+            tech: ['Docker', 'Twig', 'Symfony', 'PHP', 'JavaScript', 'MySQL', 'PostgreSQL', 'Doctrine'],
+            details: [
+                'Participated in subject analysis, estimations, and proposing technical solutions.',
+                'Handled configuration and fine-tuning of GeoServer.'
+            ]
+        },
+        {
+            period: '2017 – 2018',
+            title: 'E-commerce & CRM Development',
+            company: 'Best4u International',
+            role: 'WordPress, Magento, Laravel Developer',
+            tech: ['Docker', 'GIT', 'Magento 1/2', 'WordPress', 'WooCommerce', 'Laravel', 'PHP'],
+            details: [
+                'Developed Magento 1 & 2 online shops, WordPress Websites, and Laravel CRM systems.',
+                'Responsible for maintenance, security patches, and Git versioning of legacy projects.'
+            ]
+        },
+        {
+            period: '2016 – 2017',
+            title: 'Hotel and flight booking system',
+            company: 'System Capital Management',
+            role: 'PHP Full-stack Developer',
+            tech: ['PHP 7.1', 'GIT', 'MySQL', 'jQuery', 'SOAP', 'REST'],
+            details: [
+                'Developed a data import pipeline for a flight and hotel booking system.',
+                'Participated in designing a new custom framework.',
+                'Integrated 3rd party APIs (SOAP, JSON-RPC, REST).',
+                'Imported large datasets from various sources (XSL, XML, CSV, JSON).',
+                'Optimized search processes, database queries, and search algorithms.'
+            ]
+        }
+    ];
+    
+    const mentoringData = [
+        'Interviewed over 70 technical candidates from various regions including Moldova, Romania, Morocco and Vietnam.',
+        'Provided mentorship to colleagues, external developers and beginners.',
+        'Conducted student internships (4-6 participants over 2-4 month periods) focusing on Core PHP, Symfony and Laravel.'
+    ];
+
+    const educationData = [
+        {
+            degree: "Bachelor's Degree in Computer Science",
+            university: '"Alecu Russo" State University, Moldova',
+            period: '2014 – 2017'
+        }
+    ];
+
+    // --- NAVIGATION ---
+    const sections = document.querySelectorAll('.section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    function showSection(id) {
+        sections.forEach(section => {
+            section.classList.toggle('active', section.id === id);
+        });
+        navLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+        });
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = link.getAttribute('href').substring(1);
+            showSection(id);
+        });
+    });
+
+    const initialHash = window.location.hash.substring(1) || 'home';
+    showSection(initialHash);
+
+    // --- RENDER FUNCTIONS ---
+
+    // Skills Page Rendering
+    const skillsGrid = document.getElementById('skills-grid');
+    const skillFiltersContainer = document.getElementById('skill-filters');
+
+    function renderSkills(filter = 'all') {
+        if (!skillsGrid) return;
+        skillsGrid.innerHTML = '';
+        let skillsToShow = [];
+
+        if (filter === 'all') {
+            Object.values(skillsData).forEach(arr => skillsToShow.push(...arr));
+        } else {
+            skillsToShow = skillsData[filter] || [];
+        }
+
+        skillsToShow.forEach(skill => {
+            const skillEl = document.createElement('div');
+            skillEl.className = 'bg-gray-800 p-3 rounded-lg shadow-md text-center text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors';
+            skillEl.textContent = skill;
+            skillsGrid.appendChild(skillEl);
+        });
+    }
+
+    function setupSkillFilters() {
+        if (!skillFiltersContainer) return;
+        const filters = ['all', ...Object.keys(skillsData)];
+        filters.forEach(filter => {
+            const button = document.createElement('button');
+            button.className = 'px-4 py-2 mx-1 mb-2 rounded-full text-sm font-semibold transition';
+            button.textContent = filter === 'all' ? 'All' : filter;
+            button.dataset.filter = filter;
+
+            if (filter === 'all') {
+                button.classList.add('bg-blue-600', 'text-white');
+            } else {
+                button.classList.add('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+            }
+            
+            button.addEventListener('click', () => {
+                skillFiltersContainer.querySelectorAll('button').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+                });
+                button.classList.add('bg-blue-600', 'text-white');
+                button.classList.remove('bg-gray-700', 'text-gray-300');
+                renderSkills(filter);
+            });
+            skillFiltersContainer.appendChild(button);
+        });
+    }
+    
+    // D3.js Skills Graph
+    const skillSearchInput = document.getElementById('skill-search');
+
+    function renderSkillsGraph() {
+        const container = document.getElementById('d3-skills-graph-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        const svg = d3.select(container).append("svg");
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        const rootNodeId = 'Skills';
+        const nodes = [{ id: rootNodeId, type: 'root' }];
+        const links = [];
+        Object.keys(skillsData).forEach(category => {
+            nodes.push({ id: category, type: 'category', parent: rootNodeId });
+            links.push({ source: rootNodeId, target: category });
+            skillsData[category].forEach(skill => {
+                nodes.push({ id: skill, type: 'skill', parent: category });
+                links.push({ source: category, target: skill });
+            });
+        });
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id)
+                .distance(d => d.source.type === 'root' ? 130 : 70)
+                .strength(1))
+            .force("charge", d3.forceManyBody().strength(-450))
+            .force("center", d3.forceCenter(width / 2, height / 2).strength(0.1))
+            .force("collide", d3.forceCollide().radius(d => {
+                if (d.type === 'root') return 60;
+                if (d.type === 'category') return 45;
+                return 15;
+            }).strength(1));
+
+        const g = svg.append("g");
+
+        const link = g.append("g")
+            .attr("class", "graph-links")
+            .selectAll("line")
+            .data(links)
+            .join("line");
+
+        const node = g.append("g")
+            .attr("class", "graph-nodes")
+            .selectAll("g")
+            .data(nodes)
+            .join("g")
+            .attr("class", "node-group");
+
+        node.append("circle")
+            .attr("class", "node-circle")
+            .attr("r", d => {
+                if (d.type === 'root') return 55;
+                if (d.type === 'category') return 40;
+                return 10;
+            })
+            .attr("fill", d => {
+                if (d.type === 'root') return '#6366f1'; // Indigo
+                if (d.type === 'category') return '#2563eb'; // Blue
+                return '#60a5fa'; // Lighter Blue
+            });
+
+        node.append("text")
+            .attr("class", d => d.type === 'skill' ? 'node-text' : 'node-text center-node')
+            .attr("dy", d => d.type === 'skill' ? '-1.5em' : '0.3em')
+            .text(d => d.id);
+
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+        node.call(drag(simulation));
+        
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+        svg.call(zoom);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        function updateSearch() {
+            const searchTerm = skillSearchInput.value.toLowerCase().trim();
+            if (!searchTerm) {
+                node.style("opacity", 1);
+                link.style("opacity", 0.6);
+                return;
+            }
+            const matchingNodeIds = new Set();
+            nodes.forEach(n => {
+                if (n.id.toLowerCase().includes(searchTerm)) {
+                    matchingNodeIds.add(n.id);
+                    if (n.parent) {
+                        matchingNodeIds.add(n.parent);
+                        const parentNode = nodes.find(p => p.id === n.parent);
+                        if (parentNode && parentNode.parent) {
+                             matchingNodeIds.add(parentNode.parent);
+                        }
+                    }
+                    if (n.type === 'category') {
+                        skillsData[n.id].forEach(skillId => matchingNodeIds.add(skillId));
+                    }
+                     if (n.type === 'root') {
+                        nodes.forEach(node => matchingNodeIds.add(node.id));
+                    }
+                }
+            });
+            node.style("opacity", d => matchingNodeIds.has(d.id) ? 1 : 0.1);
+            link.style("opacity", d => (matchingNodeIds.has(d.source.id) && matchingNodeIds.has(d.target.id)) ? 0.6 : 0.05);
+        }
+        skillSearchInput.addEventListener('input', updateSearch);
+    }
+
+    // D3.js Candidates Graph
+    function renderCandidatesGraph() {
+        const container = document.getElementById('d3-candidates-graph-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        const svg = d3.select(container).append("svg");
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        const nodes = d3.range(70).map(i => ({ id: i }));
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("x", d3.forceX(width / 2).strength(0.05))
+            .force("y", d3.forceY(height / 2).strength(0.05))
+            .force("charge", d3.forceManyBody().strength(5))
+            .force("collide", d3.forceCollide().radius(6));
+
+        const node = svg.append("g")
+            .selectAll("circle")
+            .data(nodes)
+            .join("circle")
+            .attr("r", 5)
+            .attr("fill", "#60a5fa")
+            .style("transition", "fill 0.3s")
+            .on("mouseover", function() { d3.select(this).attr("fill", "#a5b4fc"); })
+            .on("mouseout", function() { d3.select(this).attr("fill", "#60a5fa"); });
+
+        simulation.on("tick", () => {
+            node.attr("cx", d => d.x).attr("cy", d => d.y);
+        });
+    }
+
+    // Experience Timeline Rendering
+    const timelineContainer = document.getElementById('experience-timeline');
+
+    function renderExperience() {
+        if (!timelineContainer) return;
+        timelineContainer.innerHTML = '';
+        experienceData.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'mb-16 relative'; 
+            itemEl.innerHTML = `
+                <div class="timeline-point">
+                    <img src="https://placehold.co/48x48/374151/e5e7eb?text=${item.company.charAt(0)}" alt="Logo ${item.company}" class="w-12 h-12 rounded-full object-cover border-4 border-gray-800 shadow-lg">
+                    <time class="mt-2 text-xs font-semibold text-gray-500">${item.period}</time>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-lg transition-shadow hover:shadow-xl ml-12 cursor-pointer">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">${item.title}</h3>
+                            <h4 class="text-md font-medium text-gray-400">${item.role} at ${item.company}</h4>
+                        </div>
+                        <span class="toggle-icon text-gray-500 text-xl transition-transform transform">▼</span>
+                    </div>
+                    <div class="details hidden mt-4 pt-4 border-t border-gray-700">
+                        <p class="mb-3 text-base font-normal text-gray-400">Key achievements:</p>
+                        <ul class="list-disc list-inside mb-4 text-gray-400 space-y-1">
+                            ${item.details.map(d => `<li>${d}</li>`).join('')}
+                        </ul>
+                        <div class="flex flex-wrap gap-2">
+                            ${item.tech.map(t => `<span class="bg-blue-900 text-blue-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            itemEl.querySelector('.cursor-pointer').addEventListener('click', () => {
+                const details = itemEl.querySelector('.details');
+                const icon = itemEl.querySelector('.toggle-icon');
+                const isHidden = details.classList.toggle('hidden');
+                icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+                itemEl.style.marginBottom = isHidden ? '4rem' : '1rem';
+            });
+
+            timelineContainer.appendChild(itemEl);
+        });
+    }
+
+    // Mentoring Section Rendering
+    const mentoringContainer = document.getElementById('mentoring-container');
+    function renderMentoring() {
+        if (!mentoringContainer) return;
+        const list = document.createElement('ul');
+        list.className = 'list-disc list-inside space-y-2';
+        mentoringData.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            list.appendChild(li);
+        });
+        mentoringContainer.appendChild(list);
+    }
+
+    // Education Section Rendering
+    const educationContainer = document.getElementById('education-container');
+    function renderEducation() {
+        if (!educationContainer) return;
+        educationContainer.innerHTML = '';
+        educationData.forEach(item => {
+            const eduEl = document.createElement('div');
+            eduEl.className = 'bg-gray-800 p-6 rounded-lg shadow-lg';
+            eduEl.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-white">${item.degree}</h3>
+                    <span class="text-gray-400 font-medium">${item.period}</span>
+                </div>
+                <p class="text-md text-blue-400 font-semibold mt-1">${item.university}</p>
+            `;
+            educationContainer.appendChild(eduEl);
+        });
+    }
+
+    // --- INITIALIZE ---
+    renderSkills();
+    setupSkillFilters();
+    renderSkillsGraph();
+    renderCandidatesGraph();
+    renderExperience();
+    renderMentoring();
+    renderEducation();
+
+    // Re-render D3 graphs on resize for responsiveness
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            renderSkillsGraph();
+            renderCandidatesGraph();
+        }, 250);
+    });
+});
+</script>
+</body>
+</html>
