@@ -169,14 +169,6 @@
                 </div>
 
                 <div class="mt-10">
-                    <h3 class="text-xl font-bold text-white mb-2">Interviewed Candidates Visualization</h3>
-                    <p class="text-gray-400 mb-4">A representation of the 70+ technical candidates interviewed. Each node represents a candidate.</p>
-                    <div id="d3-candidates-graph-container" class="d3-graph-container h-48">
-                        <svg id="d3-candidates-graph"></svg>
-                    </div>
-                </div>
-
-                <div class="mt-10">
                     <h3 class="text-xl font-bold text-white mb-4">Interactive Demos</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <a href="https://aharabara.github.io/cv/mentoring/api-platform-serialization.html" target="_blank" rel="noopener noreferrer" class="bg-gray-800 p-6 rounded-lg shadow-lg hover:bg-gray-700 transition-colors block">
@@ -561,39 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
         skillSearchInput.addEventListener('input', updateSearch);
     }
 
-    // D3.js Candidates Graph
-    function renderCandidatesGraph() {
-        const container = document.getElementById('d3-candidates-graph-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-        const svg = d3.select(container).append("svg");
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-
-        const nodes = d3.range(70).map(i => ({ id: i }));
-
-        const simulation = d3.forceSimulation(nodes)
-            .force("x", d3.forceX(width / 2).strength(0.05))
-            .force("y", d3.forceY(height / 2).strength(0.05))
-            .force("charge", d3.forceManyBody().strength(5))
-            .force("collide", d3.forceCollide().radius(6));
-
-        const node = svg.append("g")
-            .selectAll("circle")
-            .data(nodes)
-            .join("circle")
-            .attr("r", 5)
-            .attr("fill", "#60a5fa")
-            .style("transition", "fill 0.3s")
-            .on("mouseover", function() { d3.select(this).attr("fill", "#a5b4fc"); })
-            .on("mouseout", function() { d3.select(this).attr("fill", "#60a5fa"); });
-
-        simulation.on("tick", () => {
-            node.attr("cx", d => d.x).attr("cy", d => d.y);
-        });
-    }
-
     // Experience Timeline Rendering
     const timelineContainer = document.getElementById('experience-timeline');
 
@@ -677,7 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSkills();
     setupSkillFilters();
     renderSkillsGraph();
-    renderCandidatesGraph();
     renderExperience();
     renderMentoring();
     renderEducation();
@@ -688,7 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
             renderSkillsGraph();
-            renderCandidatesGraph();
         }, 250);
     });
 });
