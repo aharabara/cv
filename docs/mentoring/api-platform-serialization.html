@@ -26,7 +26,7 @@
         .json-string { color: #ce9178; }
         .json-number { color: #b5cea8; }
         .code-block .field-block {
-           margin-bottom: -10px;
+           margin-bottom: 0; /* Adjusted */
         }
         /* Syntax Highlighting */
         .php-keyword { color: #c586c0; }
@@ -52,6 +52,94 @@
             color: #2b6cb0;
             border: 1px solid #bee3f8;
         }
+
+        /* Tooltip Styles */
+        #entity-code {
+            position: relative;
+        }
+        #entity-code pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 0.9; /* Control line spacing */
+        }
+        .code-line {
+            display: block; /* Use block spans to avoid extra div margins */
+            position: relative;
+            padding-right: 35px; /* Make space for the icon */
+        }
+        .tooltip-container {
+            position: absolute;
+            top: 50%;
+            right: 5px;
+            transform: translateY(-50%);
+            z-index: 20;
+        }
+        .tooltip-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .tooltip-icon:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 320px;
+            background-color: #1f2937; /* bg-gray-800 */
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 30;
+            bottom: 140%;
+            left: 50%;
+            margin-left: -160px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-family: 'Inter', sans-serif;
+            white-space: normal;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .tooltip-text h4 {
+            font-weight: 700;
+            color: #dcdcaa;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .tooltip-text b {
+            font-weight: 600;
+            color: #9cdcfe;
+        }
+        .tooltip-text ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin-top: 8px;
+        }
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -77,85 +165,143 @@
                     </nav>
                 </div>
 
-                <div id="entity-code" class="bg-gray-800 text-white p-4 rounded-b-lg text-sm overflow-x-auto">
+                <div id="entity-code" class="bg-gray-800 text-white p-4 rounded-b-lg text-sm">
                     <pre><code class="code-block">
                         <div class="tab-panel" id="tab-Order">
-<span class="php-comment">// Order.php</span>
-<span class="php-attr">#[ApiResource(operations: [</span>
-    <span class="php-attr">new Get(normalizationContext: ['groups' => [</span>
-        <span class="badge-inline" data-context-group="order:read" data-operation="Get">Order::GROUP_READ</span>,
-        <span class="badge-inline" data-context-group="order-item:read" data-operation="Get">OrderItem::GROUP_READ</span>,
-        <span class="badge-inline" data-context-group="product:read" data-operation="Get">Product::GROUP_READ</span>
-    <span class="php-attr">]]),</span>
-    <span class="php-attr">new Post(</span>
-        <span class="php-attr">denormalizationContext: ['groups' => [</span>
-            <span class="badge-inline" data-context-group="order:write" data-operation="PostDenorm">Order::GROUP_WRITE</span>,
-            <span class="badge-inline" data-context-group="order-item:write" data-operation="PostDenorm">OrderItem::GROUP_WRITE</span>,
-            <span class="badge-inline" data-context-group="product:write" data-operation="PostDenorm">Product::GROUP_WRITE</span>
-        <span class="php-attr">]],</span>
-        <span class="php-attr">normalizationContext: ['groups' => [</span>
-            <span class="badge-inline" data-context-group="order:read" data-operation="PostNorm">Order::GROUP_READ</span>,
-            <span class="badge-inline" data-context-group="order-item:read" data-operation="PostNorm">OrderItem::GROUP_READ</span>
-        <span class="php-attr">]]</span>
-    <span class="php-attr">)</span>
-<span class="php-attr">])]</span>
-<span class="php-keyword">class</span> <span class="php-entity-name">Order</span> {
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order:read'</span>;
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order:write'</span>;
+<span class="code-line"><span class="php-comment">// Order.php</span></span>
+<span class="code-line"><span class="php-attr">#[ApiResource(operations: [</span>
+    <div class="tooltip-container">
+        <span class="tooltip-icon">💡</span>
+        <div class="tooltip-text">
+            <h4>2. Isolate Groups by Entity</h4>
+            <p><b>Rule:</b> Give groups names that clearly indicate their association with a specific entity (e.g., the <code>order:</code> prefix for the Order entity).</p>
+            <b>Justification:</b>
+            <ul>
+                <li><b>Conflict Prevention:</b> Prefixes solve the problem of identically named groups for different entities.</li>
+                <li><b>Readability:</b> A group like <code>product:read</code> immediately tells you what data it's responsible for.</li>
+            </ul>
+        </div>
+    </div>
+</span>
+<span class="code-line">    <span class="php-attr">new Get(normalizationContext: ['groups' => [</span>
+    <div class="tooltip-container">
+        <span class="tooltip-icon">💡</span>
+        <div class="tooltip-text">
+            <h4>4. Manage Nesting via the Endpoint Context</h4>
+            <p><b>Rule:</b> To load related entities (e.g., <code>OrderItem</code>, <code>Product</code>), add their read groups to the <code>normalizationContext</code> at the operation level.</p>
+            <b>Justification:</b>
+            <ul>
+                <li><b>Data Control:</b> You decide the nesting depth for each endpoint.</li>
+                <li><b>Preventing Circular References:</b> Helps avoid infinite recursion.</li>
+                <li><b>Performance Optimization:</b> Load only the data the client needs.</li>
+            </ul>
+        </div>
+    </div>
+</span>
+<span class="code-line">        <span class="badge-inline" data-context-group="order:read" data-operation="Get">Order::GROUP_READ</span>,</span>
+<span class="code-line">        <span class="badge-inline" data-context-group="order-item:read" data-operation="Get">OrderItem::GROUP_READ</span>,</span>
+<span class="code-line">        <span class="badge-inline" data-context-group="product:read" data-operation="Get">Product::GROUP_READ</span></span>
+<span class="code-line">    <span class="php-attr">]]),</span></span>
+<span class="code-line">    <span class="php-attr">new Post(</span></span>
+<span class="code-line">        <span class="php-attr">denormalizationContext: ['groups' => [</span>
+    <div class="tooltip-container">
+        <span class="tooltip-icon">💡</span>
+        <div class="tooltip-text">
+            <h4>5. Separate Read and Write Contexts</h4>
+            <p><b>Rule:</b> Always create separate groups for reading (<code>*:read</code>) and writing (<code>*:write</code>). Use them in <code>normalizationContext</code> and <code>denormalizationContext</code> respectively.</p>
+            <b>Justification:</b>
+            <ul>
+                <li><b>Security:</b> Prevents clients from modifying read-only fields (like ID, creation dates).</li>
+                <li><b>Flexibility:</b> The data model for reading and writing can differ.</li>
+            </ul>
+        </div>
+    </div>
+</span>
+<span class="code-line">            <span class="badge-inline" data-context-group="order:write" data-operation="PostDenorm">Order::GROUP_WRITE</span>,</span>
+<span class="code-line">            <span class="badge-inline" data-context-group="order-item:write" data-operation="PostDenorm">OrderItem::GROUP_WRITE</span>,</span>
+<span class="code-line">            <span class="badge-inline" data-context-group="product:write" data-operation="PostDenorm">Product::GROUP_WRITE</span></span>
+<span class="code-line">        <span class="php-attr">]],</span></span>
+<span class="code-line">        <span class="php-attr">normalizationContext: ['groups' => [</span></span>
+<span class="code-line">            <span class="badge-inline" data-context-group="order:read" data-operation="PostNorm">Order::GROUP_READ</span>,</span>
+<span class="code-line">            <span class="badge-inline" data-context-group="order-item:read" data-operation="PostNorm">OrderItem::GROUP_READ</span></span>
+<span class="code-line">        <span class="php-attr">]]</span></span>
+<span class="code-line">    <span class="php-attr">)</span></span>
+<span class="code-line"><span class="php-attr">])]</span></span>
+<span class="code-line"><span class="php-keyword">class</span> <span class="php-entity-name">Order</span> {</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order:read'</span>;
+    <div class="tooltip-container">
+        <span class="tooltip-icon">💡</span>
+        <div class="tooltip-text">
+            <h4>1. Define Groups as Constants in Entities</h4>
+            <p><b>Rule:</b> Instead of writing group names as strings (<code>'order:read'</code>), declare them as public constants within the corresponding entity.</p>
+            <b>Justification:</b>
+            <ul>
+                <li><b>Error Prevention:</b> A typo in a constant name causes a fatal error, while a typo in a string can go unnoticed.</li>
+                <li><b>Ease of Refactoring:</b> Rename a group in one place.</li>
+                <li><b>Autocomplete:</b> Your IDE will help you.</li>
+            </ul>
+        </div>
+    </div>
+</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order:write'</span>;</span>
 
-    <div class="field-block" data-entity="Order" data-field-name="id">
+<span class="code-line field-block" data-entity="Order" data-field-name="id">
         <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;
+    <div class="tooltip-container">
+        <span class="tooltip-icon">💡</span>
+        <div class="tooltip-text">
+            <h4>3. Use Only "Own" Groups on Fields</h4>
+            <p><b>Rule:</b> Within an entity, when annotating fields, use only the groups defined in that same entity (e.g., <code>self::GROUP_READ</code>).</p>
+            <b>Justification:</b>
+            <ul>
+                <li><b>Low Coupling:</b> The <code>Product</code> entity shouldn't know how <code>Order</code> is serialized.</li>
+                <li><b>Single Responsibility Principle:</b> The entity is only responsible for its own data representation.</li>
+            </ul>
+        </div>
     </div>
-    <div class="field-block" data-entity="Order" data-field-name="customerName">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$customerName</span>;
-    </div>
-    <div class="field-block" data-entity="Order" data-field-name="orderItems">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">OrderItem[]</span> <span class="php-variable">$orderItems</span>;
-    </div>
-}
+</span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;</span>
+<span class="code-line field-block" data-entity="Order" data-field-name="customerName">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$customerName</span>;</span>
+<span class="code-line field-block" data-entity="Order" data-field-name="orderItems">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">OrderItem[]</span> <span class="php-variable">$orderItems</span>;</span>
+<span class="code-line">}</span>
                         </div>
                         <div class="tab-panel hidden" id="tab-OrderItem">
-<span class="php-comment">// OrderItem.php</span>
-<span class="php-keyword">class</span> <span class="php-entity-name">OrderItem</span> {
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order-item:read'</span>;
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order-item:write'</span>;
-
-    <div class="field-block" data-entity="OrderItem" data-field-name="quantity">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$quantity</span>;
-    </div>
-    <div class="field-block" data-entity="OrderItem" data-field-name="product">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">Product</span> <span class="php-variable">$product</span>;
-    </div>
-}
+<span class="code-line"><span class="php-comment">// OrderItem.php</span></span>
+<span class="code-line"><span class="php-keyword">class</span> <span class="php-entity-name">OrderItem</span> {</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order-item:read'</span>;</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order-item:write'</span>;</span>
+<span class="code-line"></span>
+<span class="code-line field-block" data-entity="OrderItem" data-field-name="quantity">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$quantity</span>;</span>
+<span class="code-line field-block" data-entity="OrderItem" data-field-name="product">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">Product</span> <span class="php-variable">$product</span>;</span>
+<span class="code-line">}</span>
                         </div>
                         <div class="tab-panel hidden" id="tab-Product">
-<span class="php-comment">// Product.php</span>
-<span class="php-keyword">class</span> <span class="php-entity-name">Product</span> {
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'product:read'</span>;
-    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'product:write'</span>;
-
-    <div class="field-block" data-entity="Product" data-field-name="id">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;
-    </div>
-    <div class="field-block" data-entity="Product" data-field-name="name">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$name</span>;
-    </div>
-    <div class="field-block" data-entity="Product" data-field-name="sku">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$sku</span>;
-    </div>
-    <div class="field-block" data-entity="Product" data-field-name="price">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span>
-        <span class="php-keyword">public</span> <span class="php-type">float</span> <span class="php-variable">$price</span>;
-    </div>
-}
+<span class="code-line"><span class="php-comment">// Product.php</span></span>
+<span class="code-line"><span class="php-keyword">class</span> <span class="php-entity-name">Product</span> {</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'product:read'</span>;</span>
+<span class="code-line">    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'product:write'</span>;</span>
+<span class="code-line"></span>
+<span class="code-line field-block" data-entity="Product" data-field-name="id">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;</span>
+<span class="code-line field-block" data-entity="Product" data-field-name="name">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$name</span>;</span>
+<span class="code-line field-block" data-entity="Product" data-field-name="sku">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$sku</span>;</span>
+<span class="code-line field-block" data-entity="Product" data-field-name="price">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span></span>
+<span class="code-line">        <span class="php-keyword">public</span> <span class="php-type">float</span> <span class="php-variable">$price</span>;</span>
+<span class="code-line">}</span>
                         </div>
                     </code></pre>
                 </div>
@@ -287,8 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isFieldVisible('OrderItem', 'quantity', contextGroups)) visibleItem.quantity = item.quantity;
                 
                 if (isFieldVisible('OrderItem', 'product', contextGroups)) {
-                    // FIX: Check if the product's own read group is in the context.
-                    // If not, serialize as IRI.
                     if (contextGroups.includes('product:read')) {
                         visibleItem.product = {};
                         const product = item.product;
