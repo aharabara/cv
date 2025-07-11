@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивное демо: Лучшие практики групп сериализации</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .badge-inline {
+            display: inline-block;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+            border: 1px solid;
+            margin: 0 2px;
+        }
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .code-block .field-block {
+           margin-bottom: -10px;
+        }
+        /* Syntax Highlighting */
+        .php-keyword { color: #c586c0; }
+        .php-type { color: #4ec9b0; }
+        .php-variable { color: #9cdcfe; }
+        .php-string { color: #ce9178; }
+        .php-const { color: #4fc1ff; }
+        .php-entity-name { color: #4ec9b0; font-weight: bold; }
+        .php-comment { color: #6a9955; }
+        .php-attr { color: #dcdcaa; }
+
+        /* Method Selector Colors */
+        .http-select {
+            transition: all 0.2s ease-in-out;
+        }
+        .http-get {
+            background-color: #e6fffa;
+            color: #2c7a7b;
+            border: 1px solid #a7f3d0;
+        }
+        .http-post {
+            background-color: #ebf8ff;
+            color: #2b6cb0;
+            border: 1px solid #bee3f8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Интерактивное демо: Лучшие практики групп</h1>
+            <p class="text-gray-600 mt-2">Управляйте группами с учетом правил хорошей архитектуры.</p>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <!-- Левая колонка: Сущности с вкладками -->
+            <div class="lg:w-1/2 bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">📚 Сущности</h2>
+                <p class="text-gray-500 mb-4">Выберите сущность и управляйте её группами.</p>
+                
+                <div class="border-b border-gray-200">
+                    <nav id="entity-tabs" class="-mb-px flex space-x-4" aria-label="Tabs">
+                        <button data-target="Order" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Order.php</button>
+                        <button data-target="OrderItem" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">OrderItem.php</button>
+                        <button data-target="Product" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Product.php</button>
+                    </nav>
+                </div>
+
+                <div id="entity-code" class="bg-gray-800 text-white p-4 rounded-b-lg text-sm overflow-x-auto">
+                    <pre><code class="code-block">
+                        <div class="tab-panel" id="tab-Order">
+<span class="php-comment">// Order.php</span>
+<span class="php-attr">#[ApiResource(operations: [</span>
+    <span class="php-attr">new Get(normalizationContext: ['groups' => [</span>
+        <span class="badge-inline" data-context-group="order:read" data-operation="Get">Order::GROUP_READ</span>,
+        <span class="badge-inline" data-context-group="order-item:read" data-operation="Get">OrderItem::GROUP_READ</span>,
+        <span class="badge-inline" data-context-group="product:read" data-operation="Get">Product::GROUP_READ</span>
+    <span class="php-attr">]]),</span>
+    <span class="php-attr">new Post(</span>
+        <span class="php-attr">denormalizationContext: ['groups' => [</span>
+            <span class="badge-inline" data-context-group="order:write" data-operation="PostDenorm">Order::GROUP_WRITE</span>,
+            <span class="badge-inline" data-context-group="order-item:write" data-operation="PostDenorm">OrderItem::GROUP_WRITE</span>,
+            <span class="badge-inline" data-context-group="product:write" data-operation="PostDenorm">Product::GROUP_WRITE</span>
+        <span class="php-attr">]],</span>
+        <span class="php-attr">normalizationContext: ['groups' => [</span>
+            <span class="badge-inline" data-context-group="order:read" data-operation="PostNorm">Order::GROUP_READ</span>,
+            <span class="badge-inline" data-context-group="order-item:read" data-operation="PostNorm">OrderItem::GROUP_READ</span>
+        <span class="php-attr">]]</span>
+    <span class="php-attr">)</span>
+<span class="php-attr">])]</span>
+<span class="php-keyword">class</span> <span class="php-entity-name">Order</span> {
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order:read'</span>;
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order:write'</span>;
+
+    <div class="field-block" data-entity="Order" data-field-name="id">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;
+    </div>
+    <div class="field-block" data-entity="Order" data-field-name="customerName">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$customerName</span>;
+    </div>
+    <div class="field-block" data-entity="Order" data-field-name="orderItems">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">OrderItem[]</span> <span class="php-variable">$orderItems</span>;
+    </div>
+}
+                        </div>
+                        <div class="tab-panel hidden" id="tab-OrderItem">
+<span class="php-comment">// OrderItem.php</span>
+<span class="php-keyword">class</span> <span class="php-entity-name">OrderItem</span> {
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'order-item:read'</span>;
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'order-item:write'</span>;
+
+    <div class="field-block" data-entity="OrderItem" data-field-name="quantity">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$quantity</span>;
+    </div>
+    <div class="field-block" data-entity="OrderItem" data-field-name="product">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">Product</span> <span class="php-variable">$product</span>;
+    </div>
+}
+                        </div>
+                        <div class="tab-panel hidden" id="tab-Product">
+<span class="php-comment">// Product.php</span>
+<span class="php-keyword">class</span> <span class="php-entity-name">Product</span> {
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_READ</span> = <span class="php-string">'product:read'</span>;
+    <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'product:write'</span>;
+
+    <div class="field-block" data-entity="Product" data-field-name="id">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;
+    </div>
+    <div class="field-block" data-entity="Product" data-field-name="name">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$name</span>;
+    </div>
+    <div class="field-block" data-entity="Product" data-field-name="sku">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">string</span> <span class="php-variable">$sku</span>;
+    </div>
+    <div class="field-block" data-entity="Product" data-field-name="price">
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="product:write">self::GROUP_WRITE</span>])]</span>
+        <span class="php-keyword">public</span> <span class="php-type">float</span> <span class="php-variable">$price</span>;
+    </div>
+}
+                        </div>
+                    </code></pre>
+                </div>
+            </div>
+
+            <!-- Правая колонка: Окно браузера -->
+            <div class="lg:w-1/2 bg-white rounded-xl shadow-lg flex flex-col">
+                <div class="p-4 border-b border-gray-200">
+                    <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+                        <select id="http-method" class="http-select font-bold rounded p-2 focus:outline-none w-24">
+                            <option value="GET" selected>GET</option>
+                            <option value="POST">POST</option>
+                        </select>
+                        <div class="bg-white rounded p-2 w-full text-gray-700 text-sm truncate">
+                            https://api.example.com/orders/1
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 flex-grow">
+                    <h2 id="response-title" class="text-2xl font-bold text-gray-800 mb-4"></h2>
+                    <div id="json-output" class="bg-gray-800 text-white p-4 rounded-lg text-sm h-full overflow-x-auto">
+                        <pre><code class="language-json"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const entityCodeContainer = document.getElementById('entity-code');
+    const httpMethodSelector = document.getElementById('http-method');
+    const jsonOutputCode = document.querySelector('#json-output code');
+    const responseTitle = document.getElementById('response-title');
+    const tabsContainer = document.getElementById('entity-tabs');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+
+    const fullData = {
+        id: 1,
+        customerName: 'Иван Петров',
+        orderItems: [
+            {
+                quantity: 2,
+                product: { id: 101, name: 'Symfony: The Fast Track', sku: 'BOOK-S7', price: 39.99 }
+            },
+            {
+                quantity: 1,
+                product: { id: 102, name: 'API Platform: From A to Z', sku: 'BOOK-APIP', price: 45.50 }
+            }
+        ]
+    };
+
+    const groupColors = {
+        'order:read': { active: 'bg-blue-500 text-white border-blue-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' },
+        'order-item:read': { active: 'bg-green-500 text-white border-green-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' },
+        'product:read': { active: 'bg-teal-500 text-white border-teal-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' },
+        'order:write': { active: 'bg-yellow-500 text-black border-yellow-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' },
+        'order-item:write': { active: 'bg-lime-500 text-black border-lime-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' },
+        'product:write': { active: 'bg-orange-500 text-white border-orange-500', inactive: 'bg-gray-700 text-gray-300 border-gray-600' }
+    };
+
+    function updateBadgeAppearance() {
+        document.querySelectorAll('.badge-inline').forEach(badge => {
+            const group = badge.dataset.group || badge.dataset.contextGroup;
+            const colors = groupColors[group];
+            if (!colors) return;
+            badge.classList.remove(...Object.values(colors).join(' ').split(' '));
+            if (badge.classList.contains('active')) {
+                badge.classList.add(...colors.active.split(' '));
+            } else {
+                badge.classList.add(...colors.inactive.split(' '));
+            }
+        });
+    }
+
+    function isFieldVisible(entity, fieldName, contextGroups) {
+        const fieldBlock = document.querySelector(`.field-block[data-entity="${entity}"][data-field-name="${fieldName}"]`);
+        if (!fieldBlock) return false;
+        const activeFieldBadges = fieldBlock.querySelectorAll('.field-badge.active');
+        const activeGroupsForField = Array.from(activeFieldBadges).map(b => b.dataset.group);
+        return activeGroupsForField.some(g => contextGroups.includes(g));
+    }
+
+    function buildVisibleData(data, contextGroups) {
+        let visibleData = {};
+        if (isFieldVisible('Order', 'id', contextGroups)) visibleData.id = data.id;
+        if (isFieldVisible('Order', 'customerName', contextGroups)) visibleData.customerName = data.customerName;
+        if (isFieldVisible('Order', 'orderItems', contextGroups)) {
+            visibleData.orderItems = data.orderItems.map(item => {
+                let visibleItem = {};
+                if (isFieldVisible('OrderItem', 'quantity', contextGroups)) visibleItem.quantity = item.quantity;
+                if (isFieldVisible('OrderItem', 'product', contextGroups)) {
+                    visibleItem.product = {};
+                    const product = item.product;
+                    if (isFieldVisible('Product', 'id', contextGroups)) visibleItem.product.id = product.id;
+                    if (isFieldVisible('Product', 'name', contextGroups)) visibleItem.product.name = product.name;
+                    if (isFieldVisible('Product', 'sku', contextGroups)) visibleItem.product.sku = product.sku;
+                    if (isFieldVisible('Product', 'price', contextGroups)) visibleItem.product.price = product.price;
+                    if (Object.keys(visibleItem.product).length === 0) delete visibleItem.product;
+                }
+                return Object.keys(visibleItem).length > 0 ? visibleItem : null;
+            }).filter(Boolean);
+            if (visibleData.orderItems.length === 0) delete visibleData.orderItems;
+        }
+        return visibleData;
+    }
+
+    function renderJsonRecursive(obj, indent = '  ') {
+        if (obj === null || typeof obj !== 'object') {
+            const valueType = typeof obj === 'number' ? 'json-number' : 'json-string';
+            return `<span class="${valueType}">${JSON.stringify(obj)}</span>`;
+        }
+        let html = Array.isArray(obj) ? '[\n' : '{\n';
+        const keys = Object.keys(obj);
+        keys.forEach((key, index) => {
+            const isLast = index === keys.length - 1;
+            const value = obj[key];
+            if (Array.isArray(obj)) {
+                html += `${indent}${renderJsonRecursive(value, indent + '  ')}${isLast ? '' : ','}\n`;
+            } else {
+                html += `${indent}<span class="json-key">"${key}"</span>: ${renderJsonRecursive(value, indent + '  ')}${isLast ? '' : ','}\n`;
+            }
+        });
+        const closingIndent = indent.slice(0, -2);
+        html += closingIndent + (Array.isArray(obj) ? ']' : '}');
+        return html;
+    }
+
+    function updateJson() {
+        const method = httpMethodSelector.value;
+        let activeContextGroups = [];
+
+        if (method === 'GET') {
+            responseTitle.textContent = 'Ответ (Normalization)';
+            document.querySelectorAll(`.badge-inline[data-context-group][data-operation="Get"]`).forEach(badge => {
+                if (badge.classList.contains('active')) {
+                    activeContextGroups.push(badge.dataset.contextGroup);
+                }
+            });
+        } else { // POST
+            responseTitle.textContent = 'Тело запроса (Denormalization)';
+            document.querySelectorAll(`.badge-inline[data-context-group][data-operation="PostDenorm"]`).forEach(badge => {
+                if (badge.classList.contains('active')) {
+                    activeContextGroups.push(badge.dataset.contextGroup);
+                }
+            });
+        }
+        
+        const visibleData = buildVisibleData(fullData, activeContextGroups);
+        jsonOutputCode.innerHTML = renderJsonRecursive(visibleData);
+    }
+
+    function handleTabClick(e) {
+        const targetEntity = e.target.dataset.target;
+        tabButtons.forEach(btn => {
+            const isTarget = btn.dataset.target === targetEntity;
+            btn.classList.toggle('border-indigo-500', isTarget);
+            btn.classList.toggle('text-indigo-600', isTarget);
+            btn.classList.toggle('border-transparent', !isTarget);
+            btn.classList.toggle('text-gray-500', !isTarget);
+            btn.classList.toggle('hover:text-gray-700', !isTarget);
+            btn.classList.toggle('hover:border-gray-300', !isTarget);
+        });
+        tabPanels.forEach(panel => {
+            panel.classList.toggle('hidden', panel.id !== `tab-${targetEntity}`);
+        });
+    }
+
+    function setMethodSelectorColor() {
+        if (httpMethodSelector.value === 'GET') {
+            httpMethodSelector.classList.remove('http-post');
+            httpMethodSelector.classList.add('http-get');
+        } else {
+            httpMethodSelector.classList.remove('http-get');
+            httpMethodSelector.classList.add('http-post');
+        }
+    }
+
+    function initializeState() {
+        document.querySelectorAll('.badge-inline').forEach(badge => badge.classList.add('active'));
+        updateBadgeAppearance();
+        tabsContainer.querySelector('.tab-btn').click();
+        setMethodSelectorColor();
+        updateJson();
+    }
+
+    tabsContainer.addEventListener('click', (e) => {
+        if (e.target.matches('.tab-btn')) {
+            handleTabClick(e);
+        }
+    });
+    entityCodeContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('badge-inline')) {
+            e.target.classList.toggle('active');
+            updateBadgeAppearance();
+            updateJson();
+        }
+    });
+    httpMethodSelector.addEventListener('change', () => {
+        setMethodSelectorColor();
+        updateJson();
+    });
+
+    initializeState();
+});
+</script>
+
+</body>
+</html>
