@@ -140,7 +140,7 @@
     <span class="php-keyword">public const</span> <span class="php-const">GROUP_WRITE</span> = <span class="php-string">'product:write'</span>;
 
     <div class="field-block" data-entity="Product" data-field-name="id">
-        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>])]</span>
+        <span class="php-attr">#[Groups([<span class="badge-inline field-badge" data-group="product:read">self::GROUP_READ</span>, <span class="badge-inline field-badge" data-group="order-item:read">self::GROUP_READ</span>])]</span>
         <span class="php-keyword">public</span> <span class="php-type">int</span> <span class="php-variable">$id</span>;
     </div>
     <div class="field-block" data-entity="Product" data-field-name="name">
@@ -175,10 +175,34 @@
                     </div>
                 </div>
                 
-                <div class="p-6 flex-grow">
-                    <h2 id="response-title" class="text-2xl font-bold text-gray-800 mb-4"></h2>
-                    <div id="json-output" class="bg-gray-800 text-white p-4 rounded-lg text-sm h-full overflow-x-auto">
-                        <pre><code class="language-json"></code></pre>
+                <div class="p-6 flex-grow flex flex-col">
+                    <div id="post-view-tabs" class="hidden border-b border-gray-200 mb-4">
+                        <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                            <button data-target="request" class="post-tab-btn whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">Request</button>
+                            <button data-target="response" class="post-tab-btn whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">Response</button>
+                        </nav>
+                    </div>
+
+                    <div id="get-view" class="flex-grow">
+                        <h2 id="get-title" class="text-2xl font-bold text-gray-800 mb-4"></h2>
+                        <div class="bg-gray-800 text-white p-4 rounded-lg text-sm h-full overflow-x-auto">
+                            <pre><code id="json-output-get" class="language-json"></code></pre>
+                        </div>
+                    </div>
+
+                    <div id="post-view" class="hidden flex-grow flex flex-col">
+                        <div id="request-panel" class="post-panel flex-grow flex flex-col">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">Тело запроса (Denormalization)</h2>
+                            <div class="bg-gray-800 text-white p-4 rounded-lg text-sm h-full overflow-x-auto">
+                                <pre><code id="json-output-request" class="language-json"></code></pre>
+                            </div>
+                        </div>
+                        <div id="response-panel" class="post-panel hidden flex-grow flex flex-col">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">Ответ сервера (Normalization)</h2>
+                            <div class="bg-gray-800 text-white p-4 rounded-lg text-sm h-full overflow-x-auto">
+                                <pre><code id="json-output-response" class="language-json"></code></pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -189,11 +213,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     const entityCodeContainer = document.getElementById('entity-code');
     const httpMethodSelector = document.getElementById('http-method');
-    const jsonOutputCode = document.querySelector('#json-output code');
-    const responseTitle = document.getElementById('response-title');
-    const tabsContainer = document.getElementById('entity-tabs');
-    const tabPanels = document.querySelectorAll('.tab-panel');
-    const tabButtons = document.querySelectorAll('.tab-btn');
+    
+    // Views
+    const getView = document.getElementById('get-view');
+    const postView = document.getElementById('post-view');
+    const postViewTabs = document.getElementById('post-view-tabs');
+    const postTabButtons = document.querySelectorAll('.post-tab-btn');
+    const postPanels = document.querySelectorAll('.post-panel');
+
+    // JSON outputs
+    const jsonOutputGet = document.getElementById('json-output-get');
+    const jsonOutputRequest = document.getElementById('json-output-request');
+    const jsonOutputResponse = document.getElementById('json-output-response');
+    
+    // Entity tabs
+    const entityTabsContainer = document.getElementById('entity-tabs');
+    const entityTabPanels = document.querySelectorAll('.tab-panel');
+    const entityTabButtons = document.querySelectorAll('.tab-btn');
 
     const fullData = {
         id: 1,
@@ -249,14 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
             visibleData.orderItems = data.orderItems.map(item => {
                 let visibleItem = {};
                 if (isFieldVisible('OrderItem', 'quantity', contextGroups)) visibleItem.quantity = item.quantity;
+                
                 if (isFieldVisible('OrderItem', 'product', contextGroups)) {
-                    visibleItem.product = {};
-                    const product = item.product;
-                    if (isFieldVisible('Product', 'id', contextGroups)) visibleItem.product.id = product.id;
-                    if (isFieldVisible('Product', 'name', contextGroups)) visibleItem.product.name = product.name;
-                    if (isFieldVisible('Product', 'sku', contextGroups)) visibleItem.product.sku = product.sku;
-                    if (isFieldVisible('Product', 'price', contextGroups)) visibleItem.product.price = product.price;
-                    if (Object.keys(visibleItem.product).length === 0) delete visibleItem.product;
+                    // FIX: Check if the product's own read group is in the context.
+                    // If not, serialize as IRI.
+                    if (contextGroups.includes('product:read')) {
+                        visibleItem.product = {};
+                        const product = item.product;
+                        if (isFieldVisible('Product', 'id', contextGroups)) visibleItem.product.id = product.id;
+                        if (isFieldVisible('Product', 'name', contextGroups)) visibleItem.product.name = product.name;
+                        if (isFieldVisible('Product', 'sku', contextGroups)) visibleItem.product.sku = product.sku;
+                        if (isFieldVisible('Product', 'price', contextGroups)) visibleItem.product.price = product.price;
+                        if (Object.keys(visibleItem.product).length === 0) delete visibleItem.product;
+                    } else {
+                        visibleItem.product = `/api/products/${item.product.id}`;
+                    }
                 }
                 return Object.keys(visibleItem).length > 0 ? visibleItem : null;
             }).filter(Boolean);
@@ -288,31 +331,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateJson() {
         const method = httpMethodSelector.value;
-        let activeContextGroups = [];
-
+        
         if (method === 'GET') {
-            responseTitle.textContent = 'Ответ (Normalization)';
+            getView.classList.remove('hidden');
+            postView.classList.add('hidden');
+            postViewTabs.classList.add('hidden');
+            document.getElementById('get-title').textContent = 'Ответ (Normalization)';
+
+            let contextGroups = [];
             document.querySelectorAll(`.badge-inline[data-context-group][data-operation="Get"]`).forEach(badge => {
                 if (badge.classList.contains('active')) {
-                    activeContextGroups.push(badge.dataset.contextGroup);
+                    contextGroups.push(badge.dataset.contextGroup);
                 }
             });
+            const visibleData = buildVisibleData(fullData, contextGroups);
+            jsonOutputGet.innerHTML = renderJsonRecursive(visibleData);
+
         } else { // POST
-            responseTitle.textContent = 'Тело запроса (Denormalization)';
+            getView.classList.add('hidden');
+            postView.classList.remove('hidden');
+            postViewTabs.classList.remove('hidden');
+
+            // Request (Denormalization)
+            let denormGroups = [];
             document.querySelectorAll(`.badge-inline[data-context-group][data-operation="PostDenorm"]`).forEach(badge => {
                 if (badge.classList.contains('active')) {
-                    activeContextGroups.push(badge.dataset.contextGroup);
+                    denormGroups.push(badge.dataset.contextGroup);
                 }
             });
+            const requestData = buildVisibleData(fullData, denormGroups);
+            jsonOutputRequest.innerHTML = renderJsonRecursive(requestData);
+
+            // Response (Normalization)
+            let normGroups = [];
+            document.querySelectorAll(`.badge-inline[data-context-group][data-operation="PostNorm"]`).forEach(badge => {
+                if (badge.classList.contains('active')) {
+                    normGroups.push(badge.dataset.contextGroup);
+                }
+            });
+            const responseData = buildVisibleData(fullData, normGroups);
+            jsonOutputResponse.innerHTML = renderJsonRecursive(responseData);
         }
-        
-        const visibleData = buildVisibleData(fullData, activeContextGroups);
-        jsonOutputCode.innerHTML = renderJsonRecursive(visibleData);
     }
 
-    function handleTabClick(e) {
+    function handleEntityTabClick(e) {
         const targetEntity = e.target.dataset.target;
-        tabButtons.forEach(btn => {
+        entityTabButtons.forEach(btn => {
             const isTarget = btn.dataset.target === targetEntity;
             btn.classList.toggle('border-indigo-500', isTarget);
             btn.classList.toggle('text-indigo-600', isTarget);
@@ -321,8 +385,22 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('hover:text-gray-700', !isTarget);
             btn.classList.toggle('hover:border-gray-300', !isTarget);
         });
-        tabPanels.forEach(panel => {
+        entityTabPanels.forEach(panel => {
             panel.classList.toggle('hidden', panel.id !== `tab-${targetEntity}`);
+        });
+    }
+
+    function handlePostViewTabClick(e) {
+        const targetPanel = e.target.dataset.target; // 'request' or 'response'
+        postTabButtons.forEach(btn => {
+            const isTarget = btn.dataset.target === targetPanel;
+            btn.classList.toggle('border-indigo-500', isTarget);
+            btn.classList.toggle('text-indigo-600', isTarget);
+            btn.classList.toggle('border-transparent', !isTarget);
+            btn.classList.toggle('text-gray-500', !isTarget);
+        });
+        postPanels.forEach(panel => {
+            panel.classList.toggle('hidden', panel.id !== `${targetPanel}-panel`);
         });
     }
 
@@ -339,15 +417,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeState() {
         document.querySelectorAll('.badge-inline').forEach(badge => badge.classList.add('active'));
         updateBadgeAppearance();
-        tabsContainer.querySelector('.tab-btn').click();
+        entityTabsContainer.querySelector('.tab-btn').click();
+        postViewTabs.querySelector('.post-tab-btn').click();
         setMethodSelectorColor();
         updateJson();
     }
 
-    tabsContainer.addEventListener('click', (e) => {
-        if (e.target.matches('.tab-btn')) {
-            handleTabClick(e);
-        }
+    entityTabsContainer.addEventListener('click', (e) => {
+        if (e.target.matches('.tab-btn')) handleEntityTabClick(e);
+    });
+    postViewTabs.addEventListener('click', (e) => {
+        if (e.target.matches('.post-tab-btn')) handlePostViewTabClick(e);
     });
     entityCodeContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('badge-inline')) {
