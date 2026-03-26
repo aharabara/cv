@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Визуализатор Внимания LLM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .token {
+            display: inline-block;
+            padding: 0px 2px;
+            margin: 1px 0px;
+            border-radius: 4px;
+            cursor: default;
+            transition: transform 0.1s, box-shadow 0.1s;
+            user-select: none; /* Отключаем стандартное выделение текста для Drag-to-Select */
+        }
+        .token:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            outline: 2px solid #3b82f6;
+            z-index: 20;
+            position: relative;
+        }
+        /* Стили для модального окна */
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-6 relative">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
+        <!-- Главный контент -->
+        <div class="flex-1 space-y-6">
+            <header>
+                <h1 class="text-3xl font-bold text-slate-900">Визуализатор Внимания</h1>
+                <p class="text-slate-600 mt-2">Симулирует то, как механизмы внимания трансформеров взвешивают разные части промпта. Используйте <b>Shift</b> для выделения диапазона и <b>Cmd/Ctrl</b> для добавления токена.</p>
+            </header>
+
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <label for="prompt-input" class="block text-sm font-medium text-slate-700 mb-2">Ваш Промпт:</label>
+                <textarea id="prompt-input" rows="6" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm" placeholder="Введите ваш промпт здесь..."></textarea>
+                
+                <div class="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex gap-2">
+                        <button id="visualize-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm">
+                            Визуализировать
+                        </button>
+                        <button id="ai-execute-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm flex items-center gap-2">
+                            <span>🚀 Выполнить с ИИ</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-500">
+                        <span>Низкий вес</span>
+                        <div class="w-24 h-4 bg-gradient-to-r from-blue-50 to-blue-600 rounded"></div>
+                        <span>Высокий вес</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="visualization-area" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hidden min-h-[200px]">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">Тепловая карта внимания (Симуляция)</h2>
+                <div id="tokens-container" class="whitespace-pre-wrap break-words"></div>
+            </section>
+        </div>
+
+        <!-- Боковая панель -->
+        <aside class="w-full md:w-80 flex-shrink-0">
+            <div class="bg-slate-900 text-white p-6 rounded-xl shadow-xl sticky top-6 min-h-[300px]">
+                <div id="sidebar-default" class="text-slate-400 text-center mt-20">
+                    Наведите курсор или выделите группу токенов, чтобы увидеть тепловую карту связей...
+                </div>
+                
+                <div id="sidebar-active" class="hidden">
+                    <div class="text-xs text-slate-500 uppercase tracking-wider mb-1" id="sb-title">Выбранный Токен</div>
+                    <div class="font-mono text-blue-300 mb-4 border-b border-slate-700 pb-3 text-xl break-words" id="sb-token"></div>
+                    
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-slate-400">Ср. Базовый вес:</span>
+                        <span id="sb-weight" class="font-bold text-green-400 text-lg"></span>
+                    </div>
+                    
+                    <div class="text-sm text-slate-400 mb-3 border-b border-slate-800 pb-1">Топ связанных токенов:</div>
+                    <ul id="sb-top-relations" class="space-y-2 text-sm overflow-y-auto max-h-[25vh] pr-2 custom-scrollbar mb-6"></ul>
+
+                    <div class="text-sm text-slate-400 mb-3 border-b border-slate-800 pb-1">Контекстный след (Reversed):</div>
+                    <div id="sb-propagation" class="flex flex-wrap gap-1 overflow-y-auto max-h-[25vh] custom-scrollbar pb-2"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Модальное окно для результатов ИИ -->
+    <div id="ai-modal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="ai-modal-content">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-indigo-50 rounded-t-2xl">
+                <h2 class="text-2xl font-bold text-indigo-900 flex items-center gap-2">🤖 Ответ модели</h2>
+                <button id="close-modal-btn" class="text-slate-500 hover:text-slate-800 focus:outline-none p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <div id="ai-error-container" class="hidden bg-red-50 border-l-4 border-red-500 p-4 text-red-700"></div>
+                <div id="ai-results-container" class="hidden space-y-6">
+                    <div id="ai-response-content" class="bg-slate-50 p-4 rounded-lg border border-slate-200 whitespace-pre-wrap font-sans text-base leading-relaxed text-slate-800"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        const defaultPrompt = `<system>\nТы полезный ассистент.\n</system>\n\nЗадача: Извлечь все даты из следующего текста.\n\nТекст:\nЯ родился 1990-05-15. Мы переехали в Нью-Йорк в августе 2001. Контракт был подписан 12/05/2023.\n\nФормат вывода: Пожалуйста, предоставьте даты в виде маркированного списка markdown.`;
+        
+        const inputArea = document.getElementById('prompt-input');
+        const visBtn = document.getElementById('visualize-btn');
+        const aiExecuteBtn = document.getElementById('ai-execute-btn');
+        const visArea = document.getElementById('visualization-area');
+        const container = document.getElementById('tokens-container');
+        
+        const sidebarDefault = document.getElementById('sidebar-default');
+        const sidebarActive = document.getElementById('sidebar-active');
+        const sbTitle = document.getElementById('sb-title');
+        const sbToken = document.getElementById('sb-token');
+        const sbWeight = document.getElementById('sb-weight');
+        const sbTopRelations = document.getElementById('sb-top-relations');
+        const sbPropagation = document.getElementById('sb-propagation');
+
+        const modal = document.getElementById('ai-modal');
+        const modalContent = document.getElementById('ai-modal-content');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const aiResultsContainer = document.getElementById('ai-results-container');
+        const aiErrorContainer = document.getElementById('ai-error-container');
+        const aiResponseContent = document.getElementById('ai-response-content');
+
+        const stopWords = new Set(["the", "is", "at", "which", "and", "a", "an", "of", "to", "in", "for", "was", "on", "we", "в", "на", "с", "по", "и", "а", "но", "как", "так", "что"]);
+        const structural = new Set(["<", ">", "[", "]", "*", "#", "system", "task:", "text:", "output", "задача:", "текст:", "вывод:"]);
+
+        let globalTokensData = [];
+        let renderElements = [];
+        let latestAiResponse = "";
+        
+        // Переменные для выделения
+        let selectedTokenIds = new Set();
+        let lastClickedTokenId = null;
+
+        inputArea.value = defaultPrompt;
+
+        visBtn.addEventListener('click', () => {
+            visualizeAll();
+        });
+
+        function tokenizeText(text, isResponse, startIndex) {
+            const rawTokens = text.split(/(\s+|[.,!?;:<>[\]*#]+|\b)/).filter(Boolean);
+            let N = startIndex;
+
+            rawTokens.forEach(tokenText => {
+                if (/^\s+$/.test(tokenText)) {
+                    renderElements.push({ type: 'space', text: tokenText });
+                } else {
+                    let weight = Math.random() * 0.3 + 0.2;
+                    const lower = tokenText.toLowerCase();
+
+                    if (structural.has(lower) || lower.includes(":") || tokenText.includes("<")) weight = 0.9 + Math.random() * 0.1;
+                    if (stopWords.has(lower)) weight = Math.random() * 0.2;
+                    if (tokenText.match(/^[0-9\/-]+$/)) weight += 0.5;
+
+                    weight = Math.max(0.05, Math.min(1.0, weight));
+                    
+                    const tokenData = { id: N++, text: tokenText, weight, isResponse };
+                    globalTokensData.push(tokenData);
+                    renderElements.push({ type: 'token', data: tokenData });
+                }
+            });
+            return N;
+        }
+
+        function visualizeAll() {
+            const text = inputArea.value;
+            if (!text.trim()) return;
+            
+            globalTokensData = [];
+            renderElements = [];
+            let N = 0;
+
+            N = tokenizeText(text, false, N);
+            
+            if (latestAiResponse) {
+                N = tokenizeText(latestAiResponse, true, N);
+            }
+
+            globalTokensData.forEach((t, i) => {
+                if (i < 8 || i > N - 15) t.weight = Math.min(1.0, t.weight + 0.4);
+            });
+
+            globalTokensData.forEach((t, i) => {
+                let relations = new Array(N).fill(0);
+                let total = 0;
+                
+                for(let j = 0; j < N; j++) {
+                    if (!t.isResponse && globalTokensData[j].isResponse) continue;
+                    if (t.isResponse && globalTokensData[j].isResponse && j > i) continue;
+
+                    if (i === j) {
+                        relations[j] = 0.5 + Math.random() * 0.5;
+                    } else if (j < i) {
+                        let dist = i - j;
+                        relations[j] = (Math.random() * 1.0) / Math.sqrt(dist);
+                    } else {
+                        let dist = j - i;
+                        relations[j] = (Math.random() * 0.3) / dist;
+                    }
+                    
+                    relations[j] *= globalTokensData[j].weight;
+                    total += relations[j];
+                }
+                
+                if (total > 0) {
+                    t.attentionDistribution = relations.map(r => r / total);
+                } else {
+                    t.attentionDistribution = relations.map(r => 0);
+                }
+            });
+
+            selectedTokenIds.clear();
+            lastClickedTokenId = null;
+            render();
+            visArea.classList.remove('hidden');
+        }
+
+        function render() {
+            container.innerHTML = '';
+            let currentIsResponse = false;
+
+            renderElements.forEach(item => {
+                if (item.type === 'space') {
+                    container.appendChild(document.createTextNode(item.text));
+                    return;
+                }
+
+                const t = item.data;
+
+                if (t.isResponse && !currentIsResponse) {
+                    currentIsResponse = true;
+                    const sep = document.createElement('div');
+                    sep.className = 'w-full my-6 border-t-2 border-dashed border-slate-300 relative';
+                    sep.innerHTML = '<span class="absolute -top-3 left-4 bg-white px-2 text-sm font-bold text-green-600">Сгенерированный ответ</span>';
+                    container.appendChild(sep);
+                }
+
+                const span = document.createElement('span');
+                span.className = 'token';
+                span.textContent = t.text;
+                span.dataset.id = t.id;
+                
+                setBaseStyle(span, t.weight, t.isResponse);
+
+                // Обработка кликов с модификаторами (Shift / Cmd / Ctrl)
+                span.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    if (e.shiftKey && lastClickedTokenId !== null) {
+                        // Выделение диапазона
+                        const start = Math.min(lastClickedTokenId, t.id);
+                        const end = Math.max(lastClickedTokenId, t.id);
+                        for (let i = start; i <= end; i++) {
+                            if (globalTokensData.find(dt => dt.id === i)) {
+                                selectedTokenIds.add(i);
+                            }
+                        }
+                    } else if (e.metaKey || e.ctrlKey) {
+                        // Добавление/Удаление одного элемента
+                        if (selectedTokenIds.has(t.id)) {
+                            selectedTokenIds.delete(t.id);
+                        } else {
+                            selectedTokenIds.add(t.id);
+                        }
+                    } else {
+                        // Обычный клик (сброс и выделение одного, либо снятие выделения если клик по тому же)
+                        if (selectedTokenIds.size === 1 && selectedTokenIds.has(t.id)) {
+                            selectedTokenIds.clear();
+                        } else {
+                            selectedTokenIds.clear();
+                            selectedTokenIds.add(t.id);
+                        }
+                    }
+
+                    if (selectedTokenIds.size > 0) {
+                        lastClickedTokenId = t.id;
+                        showHeatmap(Array.from(selectedTokenIds));
+                    } else {
+                        lastClickedTokenId = null;
+                        hideHeatmap();
+                    }
+                });
+
+                span.addEventListener('mouseenter', () => {
+                    if (selectedTokenIds.size === 0) {
+                        showHeatmap([t.id]);
+                    }
+                });
+
+                span.addEventListener('mouseleave', () => {
+                    if (selectedTokenIds.size === 0) {
+                        hideHeatmap();
+                    }
+                });
+
+                container.appendChild(span);
+            });
+        }
+
+        // Клик вне токенов сбрасывает выделение
+        document.addEventListener('click', (e) => {
+            if (selectedTokenIds.size > 0 && !e.target.classList.contains('token')) {
+                selectedTokenIds.clear();
+                lastClickedTokenId = null;
+                hideHeatmap();
+            }
+        });
+
+        function setBaseStyle(element, weight, isResponse) {
+            const bgOpacity = weight * 0.9;
+            if (isResponse) {
+                element.style.backgroundColor = `rgba(34, 197, 94, ${bgOpacity})`; 
+            } else {
+                element.style.backgroundColor = `rgba(37, 99, 235, ${bgOpacity})`; 
+            }
+            element.style.color = weight > 0.6 ? 'white' : 'black';
+            element.style.borderColor = 'transparent';
+        }
+
+        function showHeatmap(tokenIdsArray) {
+            if (tokenIdsArray.length === 0) return;
+
+            let mergedTopRelationsMap = new Map();
+            let totalWeight = 0;
+
+            // 1. Собираем Топ-10 для каждого выделенного токена и объединяем их (Union of Top-K)
+            tokenIdsArray.forEach(id => {
+                totalWeight += globalTokensData[id].weight;
+                
+                const dist = globalTokensData[id].attentionDistribution;
+                const topForThisToken = dist
+                    .map((weight, idx) => ({ idx, weight }))
+                    .filter(item => {
+                        const targetText = globalTokensData[item.idx].text;
+                        // Исключаем сами выделенные токены, переносы строк, пунктуацию, числа и символы
+                        return !tokenIdsArray.includes(item.idx) && 
+                               targetText !== '\n' && 
+                               !/^[0-9.,!?;:<>[\]*#\-\/]+$/.test(targetText);
+                    })
+                    .sort((a, b) => b.weight - a.weight)
+                    .slice(0, 10);
+                    
+                topForThisToken.forEach(target => {
+                    // Сохраняем максимальный вес, чтобы избежать размытия (Max Pooling)
+                    if (mergedTopRelationsMap.has(target.idx)) {
+                        mergedTopRelationsMap.set(target.idx, Math.max(mergedTopRelationsMap.get(target.idx), target.weight));
+                    } else {
+                        mergedTopRelationsMap.set(target.idx, target.weight);
+                    }
+                });
+            });
+
+            const avgWeight = totalWeight / tokenIdsArray.length;
+
+            // 2. Сортируем объединенный список
+            const sortedMergedRelations = Array.from(mergedTopRelationsMap.entries())
+                .map(([idx, weight]) => ({ idx, weight }))
+                .sort((a, b) => b.weight - a.weight);
+
+            const rankMap = {};
+            sortedMergedRelations.forEach((item, rank) => {
+                rankMap[item.idx] = rank;
+            });
+
+            // 3. Отрисовка
+            const allSpans = container.querySelectorAll('.token');
+            allSpans.forEach(span => {
+                const targetId = parseInt(span.dataset.id);
+                if (tokenIdsArray.includes(targetId)) {
+                    span.style.backgroundColor = '#f59e0b'; // Янтарный для выделенных
+                    span.style.color = 'white';
+                } else if (rankMap.hasOwnProperty(targetId)) {
+                    const rank = rankMap[targetId];
+                    const visualOpacity = Math.max(0.1, 1.0 - (rank * (1.0 / sortedMergedRelations.length))); 
+                    
+                    span.style.backgroundColor = `rgba(239, 68, 68, ${visualOpacity})`;
+                    span.style.color = visualOpacity > 0.5 ? 'white' : 'black';
+                } else {
+                    setBaseStyle(span, globalTokensData[targetId].weight, globalTokensData[targetId].isResponse);
+                }
+            });
+
+            sidebarDefault.classList.add('hidden');
+            sidebarActive.classList.remove('hidden');
+            
+            if (tokenIdsArray.length === 1) {
+                sbTitle.textContent = selectedTokenIds.size > 0 ? 'Выбранный Токен (Зафиксирован)' : 'Выбранный Токен';
+                sbToken.textContent = `"${globalTokensData[tokenIdsArray[0]].text}"`;
+            } else {
+                sbTitle.textContent = 'Группа токенов (Фраза)';
+                const words = tokenIdsArray.map(id => globalTokensData[id].text).join(' ');
+                sbToken.textContent = words.length > 40 ? `"${words.substring(0, 40)}..."` : `"${words}"`;
+            }
+            
+            sbWeight.textContent = avgWeight.toFixed(3);
+            
+            sbTopRelations.innerHTML = '';
+            sortedMergedRelations.forEach(target => {
+                const targetText = globalTokensData[target.idx].text;
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-slate-800 p-2 rounded';
+                li.innerHTML = `
+                    <span class="font-mono text-yellow-300 truncate mr-2">"${targetText}"</span>
+                    <span class="text-xs font-mono text-slate-400 border border-slate-600 px-1 rounded">${(target.weight * 100).toFixed(1)}%</span>
+                `;
+                sbTopRelations.appendChild(li);
+            });
+
+            // --- Новая логика: Обратное распространение (Reversed Preceding Context) ---
+            sbPropagation.innerHTML = '';
+            const minSelectedId = Math.min(...tokenIdsArray);
+            
+            const precedingTokens = sortedMergedRelations
+                .filter(item => item.idx < minSelectedId)
+                .sort((a, b) => b.idx - a.idx); // Сортировка справа налево
+
+            precedingTokens.forEach(target => {
+                const targetText = globalTokensData[target.idx].text;
+                const rank = rankMap[target.idx];
+                const visualOpacity = Math.max(0.1, 1.0 - (rank * (1.0 / sortedMergedRelations.length)));
+                
+                const span = document.createElement('span');
+                span.className = 'inline-block px-1.5 py-0.5 rounded text-xs font-mono border border-slate-700/50';
+                span.textContent = targetText;
+                span.style.backgroundColor = `rgba(239, 68, 68, ${visualOpacity})`;
+                span.style.color = visualOpacity > 0.5 ? 'white' : 'black';
+                
+                sbPropagation.appendChild(span);
+            });
+        }
+
+        function hideHeatmap() {
+            const allSpans = container.querySelectorAll('.token');
+            allSpans.forEach(span => {
+                const id = parseInt(span.dataset.id);
+                setBaseStyle(span, globalTokensData[id].weight, globalTokensData[id].isResponse);
+            });
+
+            sidebarActive.classList.add('hidden');
+            sidebarDefault.classList.remove('hidden');
+        }
+
+        // --- ИНТЕГРАЦИЯ GEMINI API ---
+
+        async function fetchWithRetry(url, options, retries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(`Ошибка API: ${response.status} ${errData.error?.message || ''}`);
+                    }
+                    return await response.json();
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    console.warn(`Попытка ${i + 1} не удалась. Повтор через ${delays[i]}мс...`, e);
+                    await new Promise(res => setTimeout(res, delays[i]));
+                }
+            }
+        }
+
+        aiExecuteBtn.addEventListener('click', async () => {
+            const text = inputArea.value;
+            if (!text.trim()) {
+                alert("Пожалуйста, введите промпт для выполнения.");
+                return;
+            }
+
+            const originalBtnHtml = aiExecuteBtn.innerHTML;
+            aiExecuteBtn.innerHTML = `<span>⏳ Выполняю...</span>`;
+            aiExecuteBtn.disabled = true;
+            aiExecuteBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: text }] }]
+                };
+
+                const result = await fetchWithRetry(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const rawText = result.candidates[0].content.parts[0].text;
+                
+                latestAiResponse = rawText;
+                visualizeAll(); 
+
+            } catch (error) {
+                showAiError(error.message || "Не удалось связаться с Gemini API.");
+            } finally {
+                aiExecuteBtn.innerHTML = originalBtnHtml;
+                aiExecuteBtn.disabled = false;
+                aiExecuteBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        });
+
+        function showAiError(message) {
+            aiResultsContainer.classList.add('hidden');
+            aiErrorContainer.classList.remove('hidden');
+            aiErrorContainer.textContent = `Ошибка: ${message}`;
+            openModal();
+        }
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    </script>
+</body>
+</html>
